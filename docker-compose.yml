@@ -1,0 +1,60 @@
+services:
+  asterisk:
+    build: ./docker/asterisk
+    ports:
+      - "5060:5060/udp"
+      - "8088:8088/tcp"
+      - "10000-10200:10000-10200/udp"
+    environment:
+      EXTERNAL_MEDIA_ADDRESS: ${EXTERNAL_MEDIA_ADDRESS}
+    volumes:
+      - ./docker/asterisk/sounds/custom:/usr/share/asterisk/sounds/custom
+    networks:
+      - voice
+
+  stt:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    environment:
+      WHISPER__MODEL: Systran/faster-whisper-small
+    volumes:
+      - stt-cache:/home/ubuntu/.cache/huggingface/hub
+    ports:
+      - "127.0.0.1:8000:8000"
+    networks:
+      - voice
+
+  tts:
+    image: ghcr.io/remsky/kokoro-fastapi-cpu:latest
+    ports:
+      - "127.0.0.1:8880:8880"
+    networks:
+      - voice
+
+  agent:
+    build: ./server
+    depends_on:
+      - asterisk
+      - stt
+      - tts
+    restart: on-failure
+    environment:
+      ARI_URL: http://asterisk:8088
+      ARI_USER: asterisk
+      ARI_PASSWORD: asterisk
+      ARI_APP: voice-agent
+      SOUNDS_DIR: /sounds
+      LLM_BASE_URL: ${LLM_BASE_URL}
+      LLM_API_KEY: ${LLM_API_KEY}
+      LLM_MODEL: ${LLM_MODEL}
+      STT_BASE_URL: http://stt:8000/v1
+      TTS_BASE_URL: http://tts:8880/v1
+    volumes:
+      - ./docker/asterisk/sounds/custom:/sounds
+    networks:
+      - voice
+
+networks:
+  voice:
+
+volumes:
+  stt-cache:

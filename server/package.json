@@ -1,0 +1,14 @@
+{
+  "name": "agent-voice-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/index.js",
+    "dev": "node --env-file-if-exists=.env --watch src/index.js"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^4.0.78",
+    "ai": "^7.0.118",
+    "ari-client": "^2.2.0"
+  }
+}
